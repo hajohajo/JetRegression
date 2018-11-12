@@ -11,7 +11,7 @@ class plot_learning(Callback):
         self.logs = []
         self.fig = plt.figure()
 
-    def on_epoch_end(self, logs = {}):
+    def on_epoch_end(self, epoch, logs = {}):
         self.logs.append(logs)
         self.x.append(self.epoch)
         self.losses.append(logs.get('loss'))
@@ -26,11 +26,15 @@ class plot_learning(Callback):
         plt.ylabel('Epoch loss')
         plt.xlabel('Epoch')
 
+	plt.savefig('Loss_plot.pdf')
+	plt.clf()
+
 def get_callbacks():
     reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.5,
                                   patience=15, min_lr=1e-7)
     checkpoint = ModelCheckpoint('checkpoint_model.h5', monitor='val_loss',
                                  verbose=0, save_best_only=False,
                                  mode='auto')
+    loss_plot=plot_learning()
 
-    return [reduce_lr, checkpoint]
+    return [reduce_lr, checkpoint, loss_plot]

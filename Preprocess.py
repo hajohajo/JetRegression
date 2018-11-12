@@ -6,7 +6,7 @@ import glob
 from keras_preprocessing.sequence import pad_sequences
 
 #Folder containing input root files produced for example with Kimmo's Jetter
-path = '~/QCD_tuples_withPF_v5/'
+path = '/work/data/JetRegStudy/'
 fnames = glob.glob(path + '*.root')
 
 #Global jet variables to be stored
@@ -35,22 +35,25 @@ os.makedirs(out_folder)
 
 counter = 1
 for file in fnames:
-    print("Processing %d file", counter)
-    for df in root_pandas.read_root(file, 'jetTree', columns = globals + particles, chunksize=50000):
+    file = fnames
+    print("Processing %d file" % counter)
+    for df in root_pandas.read_root(file, 'jetTree', columns = globals + particles, chunksize=500): #50000):
         #Initial selections to focus on interesting subjets, makes preprocessing faster
         df = df[(df.isPhysUDS==1)|(df.isPhysG==1)]
         df = df[(df.genJetEta < 2.4)]
         df.reset_index(drop=True, inplace=True)
 
         df2=pd.DataFrame()
-        column_names = [column+'_'+str(x) for x in range(n_particles)]
 
         #Crazy compact flattening/unrolling the particle level variables stored as vectors in the jets
         for column in particles:
+	    column_names = [column+'_'+str(x) for x in range(n_particles)]
             df2=pd.concat([df2, pd.DataFrame(pd.DataFrame(pad_sequences(df[column].tolist(),
                                                     maxlen=n_particles, padding='post', dtype='float64'),
                                                     columns=column_names))], axis=1)
-        df=pd.concat([df[globals], df2])
+
+
+        df=pd.concat([df[globals], df2], axis = 1)
 
         #Store output files to out_folder in files containing chunksize jets each
         save_name=out_folder + '/preprocessed_' + str(counter) + '.root'

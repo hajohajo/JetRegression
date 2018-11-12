@@ -16,6 +16,13 @@ cd /*To your work directory*/
 mkdir JetRegression
 cd JetRegression
 python3 -m venv virtual_environment
+
+#Add paths to ROOT libraries so root_numpy and root_pandas will work. Same for CUDA. These can be added to the virtual_environment/bin/activate file
+export PYTHONPATH=/work/hajohajo/vTest/bin/:$PYTHONPATH
+export LD_LIBRARY_PATH=/work/hajohajo/vTest/bin/:$LD_LIBRARY_PATH
+export PATH=/usr/local/cuda-9.0/bin:$PATH
+export LD_LIBRARY_PATH=/usr/local/cuda-9.0/lib64:$LD_LIBRARY_PATH
+
 source virtual_environment/bin/activate
 
 ###Install necessary packages to your virtual environment
