@@ -60,7 +60,7 @@ Training_variables = Ccand_variables + Ncand_variables + Pcand_variables + Globa
 data = read_root(input_files, 'tree', columns=Training_variables+Gen_variables+Flavor_variables)
 
 # Target for the regression to predict the correction factor
-data['target'] = data.genJetPt # /data.jetPt
+data['target'] = data.genJetPt/data.jetPt
 
 # Additional selections to limit phase space
 data = data[(np.abs(data.jetEta) < 1.3) & (data.genJetPt > 60.) ] #& ((data.target > 0.85) & (data.target < 1.25))]
