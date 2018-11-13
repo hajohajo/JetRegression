@@ -59,15 +59,12 @@ test_Ncands = np.reshape(np.array(test_Ncands), (test_Ncands.shape[0], n_particl
 test_Pcands = np.reshape(np.array(test_Pcands), (test_Pcands.shape[0], n_particles, test_Pcands.shape[1]/n_particles))
 
 test_data['predictions'] = model.predict([test_Ccands, test_Ncands, test_Pcands, test_Globals])
-print test_data['predictions'][:5]
 
 # Assuming learning target was the correction factor
 test_data['Response'] = test_data['jetPt']/test_data['genJetPt']
-#test_data['jetPt_DNN'] = test_data['jetPt']*test_data['predictions']
-test_data['jetPt_DNN'] = test_data['predictions']
+test_data['jetPt_DNN'] = test_data['jetPt']*test_data['predictions']
+#test_data['jetPt_DNN'] = test_data['predictions']
 test_data['Response_DNN'] = test_data['jetPt_DNN']/test_data['genJetPt']
-
-print test_data['Response_DNN'][:5]
 
 # List of pairs of variables to plots, comparing the jet corr pT and the DNN corrected pT
 to_plot = [('genJetPt', 'Response'),
