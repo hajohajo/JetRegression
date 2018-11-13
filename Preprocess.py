@@ -35,9 +35,8 @@ os.makedirs(out_folder)
 
 counter = 1
 for file in fnames:
-    file = fnames
-    print("Processing %d file" % counter)
-    for df in root_pandas.read_root(file, 'jetTree', columns = globals + particles, chunksize=500): #50000):
+    print("Processing %s file" % file)
+    for df in root_pandas.read_root(file, 'jetTree', columns = globals + particles, chunksize=100000):
         #Initial selections to focus on interesting subjets, makes preprocessing faster
         df = df[(df.isPhysUDS==1)|(df.isPhysG==1)]
         df = df[(df.genJetEta < 2.4)]
@@ -58,4 +57,6 @@ for file in fnames:
         #Store output files to out_folder in files containing chunksize jets each
         save_name=out_folder + '/preprocessed_' + str(counter) + '.root'
         df.to_root(save_name, key = 'tree')
+	print "Processed: "+str(counter*50000)+" jets"
+
         counter=counter+1

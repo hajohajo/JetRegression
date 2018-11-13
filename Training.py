@@ -46,7 +46,7 @@ dummy = read_root(input_files[0], 'tree', chunksize=1).__iter__().next()
 Ccand_variables = list(dummy.filter(regex='jetPF_chg_'))
 Ncand_variables = list(dummy.filter(regex='jetPF_neu_'))
 Pcand_variables = list(dummy.filter(regex='jetPF_pho_'))
-Global_variables = list(set(list(dummy.filter(regex='jet')))-set(Ccand_variables+Ncand_variables+Pcand_variables))
+Global_variables = list(set(list(dummy.filter(regex='jet')))-set(Ccand_variables+Ncand_variables+Pcand_variables))+list(dummy.filter(regex='QG_'))
 Gen_variables = list(dummy.filter(regex='genJet'))
 Flavor_variables = list(dummy.filter(regex='isPhys'))
 
@@ -92,6 +92,8 @@ train_Pcands = np.reshape(np.array(train_Pcands),(train_Pcands.shape[0], n_parti
 model = create_model('DeepJet', train_Ccands.shape, train_Ncands.shape, train_Pcands.shape, train_Globals.shape)
 
 callbacks = Callbacks.get_callbacks()
+
+print Global_variables
 
 #Perform training
 model.fit([train_Ccands, train_Ncands, train_Pcands, train_Globals],
