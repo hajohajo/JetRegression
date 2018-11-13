@@ -63,7 +63,8 @@ print test_data['predictions'][:5]
 
 # Assuming learning target was the correction factor
 test_data['Response'] = test_data['jetPt']/test_data['genJetPt']
-test_data['jetPt_DNN'] = test_data['jetPt']*test_data['predictions']
+#test_data['jetPt_DNN'] = test_data['jetPt']*test_data['predictions']
+test_data['jetPt_DNN'] = test_data['predictions']
 test_data['Response_DNN'] = test_data['jetPt_DNN']/test_data['genJetPt']
 
 print test_data['Response_DNN'][:5]
@@ -80,7 +81,8 @@ to_histogram = ['Response']
 bin_dict = {'QG_ptD':np.arange(0.15, 1.00, 0.05),
             'QG_axis2':np.arange(0.0, 0.15, 0.005),
             'QG_mult':np.arange(1.0, 81.0, 1.0),
-            'genJetPt':np.arange(80.0, 1020.0, 20.0)}
+            'genJetPt':np.arange(80.0, 1020.0, 20.0),
+	    'Response':np.arange(0.80, 1.21, 0.01)}
 yrange_dict = {'Response':[0.8, 1.2]}
 
 for variables in to_plot:
@@ -126,18 +128,18 @@ for variables in to_plot:
     plt.ylabel(variables[1])
     plt.xlabel(variables[0])
 
-    plt.savefig(variables[1]+'_vs_'+variables[0]+'.pdf')
+    plt.savefig('plots/'+variables[1]+'_vs_'+variables[0]+'.pdf')
     plt.clf()
 
 for variable in to_histogram:
-    mean_l1l2l3 = np.mean(test_data[variables])
+    mean_l1l2l3 = np.mean(test_data[variable])
     mean_DNN = np.mean(test_data[variable+'_DNN'])
     std_l1l2l3 = np.std(test_data[variable])
     std_DNN = np.std(test_data[variable+'_DNN'])
 
-    plt.hist(test_data[variable], bins=bin_dict[variables], alpha=0.8,
+    plt.hist(test_data[variable], bins=bin_dict[variable], alpha=0.8,
              label='$\mu$: %0.3f, $\sigma$: %0.3f Regression' % (mean_l1l2l3, std_l1l2l3))
-    plt.hist(test_data[variable+'_DNN'], bins=bin_dict[variables], alpha=0.8,
+    plt.hist(test_data[variable+'_DNN'], bins=bin_dict[variable], alpha=0.8,
              label='$\mu$: %0.3f, $\sigma$: %0.3f Regression' % (mean_DNN, std_DNN))
 
     plt.legend()
@@ -145,5 +147,5 @@ for variable in to_histogram:
     plt.xlabel(variable)
     plt.ylabel('Jets')
     plt.yscale('log', nonposy='clip')
-    plt.savefig(variable+'.pdf')
+    plt.savefig('plots/'+variable+'_histogram.pdf')
     plt.clf()

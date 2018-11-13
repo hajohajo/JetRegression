@@ -11,30 +11,28 @@ def create_model(model_name, Ccands_shape, Ncands_shape, Pcands_shape, Globals_s
         chg = Conv1D(32, 1, kernel_initializer='lecun_uniform', activation='relu')(chg)
         chg = Conv1D(16, 1, kernel_initializer='lecun_uniform', activation='relu')(chg)
         chg = Conv1D(8, 1, kernel_initializer='lecun_uniform', activation='relu')(chg)
-        chg = Conv1D(4, 1, kernel_initializer='lecun_uniform', activation='relu')(chg)
-        chg = CuDNNLSTM(25,go_backwards=True)(chg) #go_backwards = representation of the lowest pT pfCand is fed in first
+        chg = Conv1D(1, 1, kernel_initializer='lecun_uniform', activation='relu')(chg)
+        chg = CuDNNLSTM(50,go_backwards=True)(chg) #go_backwards = representation of the lowest pT pfCand is fed in first
 
         neu_inp = Input(shape=(Ncands_shape[1], Ncands_shape[2]), name='Neutral_input')
         neu = Conv1D(32, 1, kernel_initializer='lecun_uniform', activation='relu')(neu_inp)
         neu = Conv1D(16, 1, kernel_initializer='lecun_uniform', activation='relu')(neu)
         neu = Conv1D(8, 1, kernel_initializer='lecun_uniform', activation='relu')(neu)
-        neu = Conv1D(4, 1, kernel_initializer='lecun_uniform', activation='relu')(neu)
-        neu = CuDNNLSTM(25,go_backwards=True)(neu) #go_backwards = representation of the lowest pT pfCand is fed in first
+        neu = Conv1D(1, 1, kernel_initializer='lecun_uniform', activation='relu')(neu)
+        neu = CuDNNLSTM(50,go_backwards=True)(neu) #go_backwards = representation of the lowest pT pfCand is fed in first
 
         pho_inp = Input(shape=(Pcands_shape[1], Pcands_shape[2]), name='Photon_input')
         pho = Conv1D(32, 1, kernel_initializer='lecun_uniform', activation='relu')(pho_inp)
         pho = Conv1D(16, 1, kernel_initializer='lecun_uniform', activation='relu')(pho)
         pho = Conv1D(8, 1, kernel_initializer='lecun_uniform', activation='relu')(pho)
-        pho = Conv1D(4, 1, kernel_initializer='lecun_uniform', activation='relu')(pho)
-        pho = CuDNNLSTM(25,go_backwards=True)(pho) #go_backwards = representation of the lowest pT pfCand is fed in first
+        pho = Conv1D(1, 1, kernel_initializer='lecun_uniform', activation='relu')(pho)
+        pho = CuDNNLSTM(50,go_backwards=True)(pho) #go_backwards = representation of the lowest pT pfCand is fed in first
 
         glo_inp = Input(shape=(Globals_shape[1],))
 
         concat = Concatenate()([chg, neu, pho, glo_inp])
 
-        dense = Dense(128, activation='relu')(concat)
-        dense = Dense(64, activation='relu')(dense)
-        dense = Dense(32, activation='relu')(dense)
+        dense = Dense(32, activation='relu')(concat)
         dense = Dense(16, activation='relu')(dense)
         output = Dense(1, activation='relu')(dense)
 
@@ -42,6 +40,19 @@ def create_model(model_name, Ccands_shape, Ncands_shape, Pcands_shape, Globals_s
         model.compile(loss='logcosh', optimizer=optimizers.Adam())
 
         return model
+
+    if model_name is 'Test':
+	glo_inp = Input(shape=(Globals_shape[1],))
+	dense = Dense(32, activation='relu')(glo_inp)
+        dense = Dense(16, activation='relu')(dense)
+        dense = Dense(8, activation='relu')(dense)
+        output = Dense(1, activation='relu')(dense)
+
+        model = Model(inputs=glo_inp, outputs=[output])
+        model.compile(loss='logcosh', optimizer=optimizers.Adam(lr=1e-4))
+
+        return model
+
 
     else:
         raise ValueError('Model not found')

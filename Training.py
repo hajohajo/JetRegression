@@ -35,7 +35,8 @@ import Callbacks
 # Lock the random seed for reproducibility
 np.random.seed = 7
 
-n_particles = 50
+n_particles = 20
+numbers = [str(x) for x in range(n_particles)]
 
 #input_files = glob.glob("/work/hajohajo/JetRegStudy/preprocessed_genJets_and_pfJets/*.root")
 input_files = glob.glob("/work/hajohajo/REMOVE/JetRegression/preprocessed_genJets_and_pfJets/*.root")
@@ -50,6 +51,10 @@ Global_variables = list(set(list(dummy.filter(regex='jet')))-set(Ccand_variables
 Gen_variables = list(dummy.filter(regex='genJet'))
 Flavor_variables = list(dummy.filter(regex='isPhys'))
 
+Ccand_variables = [cand for cand in Ccand_variables if (any(num == cand.split("_")[-1] for num in numbers))]
+Ncand_variables = [cand for cand in Ncand_variables if (any(num == cand.split("_")[-1] for num in numbers))]
+Pcand_variables = [cand for cand in Pcand_variables if (any(num == cand.split("_")[-1] for num in numbers))]
+
 # Reorganize pfCandidates so that they are in correct order to be fed into the LSTM layers after reshaping
 for list_ in [Ccand_variables, Ncand_variables, Pcand_variables]:
     dummy_list = [re.split(r'(\d+)', s)[0:-1] for s in list_]
@@ -60,7 +65,7 @@ Training_variables = Ccand_variables + Ncand_variables + Pcand_variables + Globa
 data = read_root(input_files, 'tree', columns=Training_variables+Gen_variables+Flavor_variables)
 
 # Target for the regression to predict the correction factor
-data['target'] = data.genJetPt/data.jetPt
+data['target'] = data.genJetPt #/data.jetPt
 
 # Additional selections to limit phase space
 data = data[(np.abs(data.jetEta) < 1.3) & (data.genJetPt > 60.) ] #& ((data.target > 0.85) & (data.target < 1.25))]
@@ -75,13 +80,15 @@ to_root(test, 'test_data.root', key='tree')
 scaler = StandardScaler().fit(training[Training_variables])
 dump(scaler, "scaler.pkl")
 train_inp = pd.DataFrame(scaler.transform(training[Training_variables]), columns=Training_variables)
+#train_inp = training[Training_variables]
 train_trg = training['target']
 
 # Separate globals, charged, neutral and photon candidates to their own inputs for the training
 train_Ccands = train_inp[Ccand_variables]
 train_Ncands = train_inp[Ncand_variables]
 train_Pcands = train_inp[Pcand_variables]
-train_Globals = train_inp[Global_variables]
+#train_Globals = train_inp[Global_variables]
+train_Globals = train_inp[['jetPt','jetEta']]
 
 # Reshaping pfCand arrays to fit LSTMs
 train_Ccands = np.reshape(np.array(train_Ccands),(train_Ccands.shape[0], n_particles, train_Ccands.shape[1]/n_particles))
@@ -90,15 +97,16 @@ train_Pcands = np.reshape(np.array(train_Pcands),(train_Pcands.shape[0], n_parti
 
 # Create model
 model = create_model('DeepJet', train_Ccands.shape, train_Ncands.shape, train_Pcands.shape, train_Globals.shape)
-
+#model = create_model('Test', train_Ccands.shape, train_Ncands.shape, train_Pcands.shape, train_Globals.shape)
 callbacks = Callbacks.get_callbacks()
 
 print Global_variables
 
 #Perform training
 model.fit([train_Ccands, train_Ncands, train_Pcands, train_Globals],
+#model.fit(train_Globals,
           train_trg,
-          batch_size=1024,
+          batch_size=128,
           validation_split=0.1,
           shuffle=True,
           epochs=500,
