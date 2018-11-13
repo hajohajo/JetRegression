@@ -129,5 +129,21 @@ for variables in to_plot:
     plt.savefig(variables[1]+'_vs_'+variables[0]+'.pdf')
     plt.clf()
 
+for variable in to_histogram:
+    mean_l1l2l3 = np.mean(test_data[variables])
+    mean_DNN = np.mean(test_data[variable+'_DNN'])
+    std_l1l2l3 = np.std(test_data[variable])
+    std_DNN = np.std(test_data[variable+'_DNN'])
 
+    plt.hist(test_data[variable], bins=bin_dict[variables], alpha=0.8,
+             label='$\mu$: %0.3f, $\sigma$: %0.3f Regression' % (mean_l1l2l3, std_l1l2l3))
+    plt.hist(test_data[variable+'_DNN'], bins=bin_dict[variables], alpha=0.8,
+             label='$\mu$: %0.3f, $\sigma$: %0.3f Regression' % (mean_DNN, std_DNN))
 
+    plt.legend()
+    plt.title('Jet '+variable)
+    plt.xlabel(variable)
+    plt.ylabel('Jets')
+    plt.yscale('log', nonposy='clip')
+    plt.savefig(variable+'.pdf')
+    plt.clf()
