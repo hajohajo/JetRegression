@@ -26,7 +26,7 @@ class plot_learning(Callback):
         plt.ylabel('Epoch loss')
         plt.xlabel('Epoch')
 
-	plt.savefig('Loss_plot.pdf')
+	plt.savefig('plots/Loss_plot.pdf')
 	plt.clf()
 
 def get_callbacks():

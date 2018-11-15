@@ -24,6 +24,8 @@ import glob
 import math
 import sys
 import re
+import os
+import shutil
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
 from sklearn.utils import class_weight
@@ -31,6 +33,13 @@ from joblib import dump
 
 from Models import create_model
 import Callbacks
+
+# (Re)create folder for plots
+folders_ = ['plots']
+for dir in folders_:
+        if os.path.exists(dir):
+            shutil.rmtree(dir)
+        os.makedirs(dir)
 
 # Lock the random seed for reproducibility
 np.random.seed = 7
@@ -68,7 +77,11 @@ data = read_root(input_files, 'tree', columns=Training_variables+Gen_variables+F
 data['target'] = data.genJetPt/data.jetPt
 
 # Additional selections to limit phase space
-data = data[(np.abs(data.jetEta) < 1.3) & (data.genJetPt > 60.) ] #& ((data.target > 0.85) & (data.target < 1.25))]
+data = data[(np.abs(data.jetEta) < 1.3) & (data.genJetPt > 60.) & ((data.target > 0.9) & (data.target < 1.1))]
+
+# Test for nans
+print data.isnull().values.any()
+print data['target'][:5]
 
 # Split into set used for training and validation, and a separate test sets 0.9/0.1
 training, test = train_test_split(data, shuffle=True, test_size=0.1)
@@ -79,16 +92,17 @@ to_root(test, 'test_data.root', key='tree')
 # Scale input variables for training and save scaler for future use in plotting
 scaler = StandardScaler().fit(training[Training_variables])
 dump(scaler, "scaler.pkl")
-train_inp = pd.DataFrame(scaler.transform(training[Training_variables]), columns=Training_variables)
-#train_inp = training[Training_variables]
+#train_inp = pd.DataFrame(scaler.transform(training[Training_variables]), columns=Training_variables)
+train_inp = training[Training_variables]
 train_trg = training['target']
 
 # Separate globals, charged, neutral and photon candidates to their own inputs for the training
 train_Ccands = train_inp[Ccand_variables]
 train_Ncands = train_inp[Ncand_variables]
 train_Pcands = train_inp[Pcand_variables]
-#train_Globals = train_inp[Global_variables]
-train_Globals = train_inp[['jetPt','jetEta']]
+train_Globals = train_inp[Global_variables]
+
+print train_Globals.head()
 
 # Reshaping pfCand arrays to fit LSTMs
 train_Ccands = np.reshape(np.array(train_Ccands),(train_Ccands.shape[0], n_particles, train_Ccands.shape[1]/n_particles))
@@ -96,17 +110,18 @@ train_Ncands = np.reshape(np.array(train_Ncands),(train_Ncands.shape[0], n_parti
 train_Pcands = np.reshape(np.array(train_Pcands),(train_Pcands.shape[0], n_particles, train_Pcands.shape[1]/n_particles))
 
 # Create model
-model = create_model('DeepJet', train_Ccands.shape, train_Ncands.shape, train_Pcands.shape, train_Globals.shape)
+model = create_model('ResNet', train_Ccands.shape, train_Ncands.shape, train_Pcands.shape, train_Globals.shape)
 #model = create_model('Test', train_Ccands.shape, train_Ncands.shape, train_Pcands.shape, train_Globals.shape)
 callbacks = Callbacks.get_callbacks()
 
-print Global_variables
+print model.summary()
+
 
 #Perform training
 model.fit([train_Ccands, train_Ncands, train_Pcands, train_Globals],
 #model.fit(train_Globals,
           train_trg,
-          batch_size=128,
+          batch_size=1024,
           validation_split=0.1,
           shuffle=True,
           epochs=500,

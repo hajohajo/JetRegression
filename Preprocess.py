@@ -26,7 +26,7 @@ particles = ['genPF_neu_pT', 'genPF_neu_dPhi', 'genPF_neu_dTheta', 'genPF_neu_dR
 #Number of particles to be considered
 n_particles = 50
 
-out_folder = "preprocessed_genJets_and_pfJets"
+out_folder = "preprocessed_genJets_and_pfJets_tmp"
 
 #Recreate the output folder
 if os.path.exists(out_folder):
@@ -52,7 +52,9 @@ for file in fnames:
                                                     columns=column_names))], axis=1)
 
 
+	print df[globals].head()
         df=pd.concat([df[globals], df2], axis = 1)
+	print df.head()
 
         #Store output files to out_folder in files containing chunksize jets each
         save_name=out_folder + '/preprocessed_' + str(counter) + '.root'
