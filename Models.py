@@ -12,21 +12,21 @@ def create_model(model_name, Ccands_shape, Ncands_shape, Pcands_shape, Globals_s
         chg = Conv1D(16, 1, kernel_initializer='lecun_uniform', activation='relu')(chg)
         chg = Conv1D(8, 1, kernel_initializer='lecun_uniform', activation='relu')(chg)
         chg = Conv1D(2, 1, kernel_initializer='lecun_uniform', activation='relu')(chg)
-        chg = CuDNNLSTM(25,go_backwards=True)(chg) #go_backwards = representation of the lowest pT pfCand is fed in first
+        chg = LSTM(15, activation='relu', kernel_initializer='glorot_normal', go_backwards=True)(chg)
 
         neu_inp = Input(shape=(Ncands_shape[1], Ncands_shape[2]), name='Neutral_input')
         neu = Conv1D(32, 1, kernel_initializer='lecun_uniform', activation='relu')(neu_inp)
         neu = Conv1D(16, 1, kernel_initializer='lecun_uniform', activation='relu')(neu)
         neu = Conv1D(8, 1, kernel_initializer='lecun_uniform', activation='relu')(neu)
         neu = Conv1D(2, 1, kernel_initializer='lecun_uniform', activation='relu')(neu)
-        neu = CuDNNLSTM(25,go_backwards=True)(neu) #go_backwards = representation of the lowest pT pfCand is fed in first
+        neu = LSTM(15, activation='relu', kernel_initializer='glorot_normal', go_backwards=True)(neu)
 
         pho_inp = Input(shape=(Pcands_shape[1], Pcands_shape[2]), name='Photon_input')
         pho = Conv1D(32, 1, kernel_initializer='lecun_uniform', activation='relu')(pho_inp)
         pho = Conv1D(16, 1, kernel_initializer='lecun_uniform', activation='relu')(pho)
         pho = Conv1D(8, 1, kernel_initializer='lecun_uniform', activation='relu')(pho)
         pho = Conv1D(2, 1, kernel_initializer='lecun_uniform', activation='relu')(pho)
-        pho = CuDNNLSTM(25,go_backwards=True)(pho) #go_backwards = representation of the lowest pT pfCand is fed in first
+        pho = LSTM(15, activation='relu', kernel_initializer='glorot_normal', go_backwards=True)(pho)
 
         glo_inp = Input(shape=(Globals_shape[1],))
 
@@ -34,6 +34,7 @@ def create_model(model_name, Ccands_shape, Ncands_shape, Pcands_shape, Globals_s
 
         dense = Dense(32, activation='relu')(concat)
         dense = Dense(16, activation='relu')(dense)
+        dense = Dense(4, activation='relu')(dense)
         output = Dense(1, activation='relu')(dense)
 
         model = Model(inputs=[chg_inp, neu_inp, pho_inp, glo_inp], outputs=[output])
