@@ -39,3 +39,8 @@ In Preprocess.py, set the path, globals, particles, n_particles and out_folder v
 
 
 #PRODUCING PLOTS
+
+# MONITORING TRAINING
+If the callback tensorboard is used, a folder Graph will be created and monitoring can be done using
+
+tensorboard --logdir path_to_current_dir/Graph 

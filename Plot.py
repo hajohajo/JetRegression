@@ -15,37 +15,21 @@ import keras.backend as K
 import pandas as pd
 import numpy as np
 import glob, re, joblib
+import hickle as hkl
 
 from root_pandas import read_root
 from keras.models import Model, load_model
 from scipy.stats import sem
 
-model = load_model('checkpoint_model_tmp.h5')
+model = load_model('checkpoint_model.h5')
 test_data_ = read_root("test_data.root")
 
-Ccand_variables = list(test_data_.filter(regex='jetPF_chg_'))
-Ncand_variables = list(test_data_.filter(regex='jetPF_neu_'))
-Pcand_variables = list(test_data_.filter(regex='jetPF_pho_'))
-Global_variables = list(set(list(test_data_.filter(regex='jet')))-set(Ccand_variables+Ncand_variables+Pcand_variables))+list(test_data_.filter(regex='QG_'))
-Gen_variables = list(test_data_.filter(regex='genJet'))
-Flavor_variables = list(test_data_.filter(regex='isPhys'))
-
-n_particles = 20
-
-# Reorganize pfCandidates so that they are in correct order to be fed into the LSTM layers after reshaping
-for list_ in [Ccand_variables, Ncand_variables, Pcand_variables]:
-    dummy_list = [re.split(r'(\d+)', s)[0:-1] for s in list_]
-    dummy_list.sort(key=lambda l: (int(l[-1]), l[0]))
-    list_ = ["".join(element) for element in dummy_list]
-
-Training_variables = Ccand_variables + Ncand_variables + Pcand_variables + Global_variables
+# Read variables saved at training
+n_particles, Ccand_variables, Ncand_variables, Pcand_variables, Global_variables, Gen_variables, Flavor_variables, Training_variables = hkl.load('Variables.hkl')
 
 # Use same scaler with the weights from the training dataset
 scaler = joblib.load("scaler.pkl")
-
-
-#test_inp = pd.DataFrame(scaler.transform(test_data_[Training_variables]), columns=Training_variables)
-test_inp = test_data_[Training_variables]
+test_inp = pd.DataFrame(scaler.transform(test_data_[Training_variables].values), columns=Training_variables)
 test_trg = test_data_['target']
 
 # Separate globals, charged, neutral and photon candidates to their own inputs
@@ -53,6 +37,7 @@ test_Ccands = test_inp[Ccand_variables]
 test_Ncands = test_inp[Ncand_variables]
 test_Pcands = test_inp[Pcand_variables]
 test_Globals = test_inp[Global_variables]
+
 
 # Reshaping pfCand arrays to fit LSTMs
 test_Ccands = np.reshape(np.array(test_Ccands), (test_Ccands.shape[0], n_particles, test_Ccands.shape[1]/n_particles))
@@ -67,7 +52,6 @@ print test_data_['target'][:5]
 # Assuming learning target was the correction factor
 test_data_['Response'] = test_data_['jetPt']/test_data_['genJetPt']
 test_data_['jetPt_DNN'] = test_data_['jetPt']*test_data_['predictions']
-#test_data_['jetPt_DNN'] = test_data_['predictions']
 test_data_['Response_DNN'] = test_data_['jetPt_DNN']/test_data_['genJetPt']
 
 # List of pairs of variables to plots, comparing the jet corr pT and the DNN corrected pT
@@ -136,9 +120,9 @@ for type in ['isPhysUDS', 'isPhysG']:
         std_l1l2l3 = np.std(test_data[variable])
         std_DNN = np.std(test_data[variable+'_DNN'])
 
-        plt.hist(test_data[variable], bins=bin_dict[variable], alpha=0.8,
+        plt.hist(test_data[variable], bins=bin_dict[variable], alpha=0.8, edgecolor='black', linewidth=1.2,
                  label='$\mu$: %0.3f, $\sigma$: %0.3f Regression' % (mean_l1l2l3, std_l1l2l3))
-        plt.hist(test_data[variable+'_DNN'], bins=bin_dict[variable], alpha=0.8,
+        plt.hist(test_data[variable+'_DNN'], bins=bin_dict[variable], alpha=0.8, edgecolor='black', linewidth=1.2,
                  label='$\mu$: %0.3f, $\sigma$: %0.3f Regression' % (mean_DNN, std_DNN))
 
         plt.legend()

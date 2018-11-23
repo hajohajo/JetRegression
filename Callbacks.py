@@ -18,8 +18,8 @@ class plot_learning(Callback):
         self.val_losses.append(logs.get('val_loss'))
         self.epoch += 1
 
-        plt.plot(self.x, self.losses, label = 'Training loss')
-        plt.plot(self.x, self.val_losses, label = 'Validation loss')
+        plt.plot(self.x[1:], self.losses[1:], label = 'Training loss')
+        plt.plot(self.x[1:], self.val_losses[1:], label = 'Validation loss')
         plt.legend()
         plt.yscale('log')
         plt.title('Training and validation losses')
@@ -35,6 +35,10 @@ def get_callbacks():
     checkpoint = ModelCheckpoint('checkpoint_model.h5', monitor='val_loss',
                                  verbose=0, save_best_only=False,
                                  mode='auto')
-    loss_plot=plot_learning()
+    loss_plot = plot_learning()
 
+    monitoring = TensorBoard(log_dir='./Graph', histogram_freq=1, write_graph=True, write_images=True, write_grads=True) 
+
+#    return [reduce_lr, checkpoint, loss_plot, monitoring]
     return [reduce_lr, checkpoint, loss_plot]
+

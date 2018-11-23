@@ -26,7 +26,8 @@ import sys
 import re
 import os
 import shutil
-from sklearn.preprocessing import StandardScaler
+import hickle as hkl
+from sklearn.preprocessing import StandardScaler, MinMaxScaler
 from sklearn.model_selection import train_test_split
 from sklearn.utils import class_weight
 from joblib import dump
@@ -35,7 +36,7 @@ from Models import create_model
 import Callbacks
 
 # (Re)create folder for plots
-folders_ = ['plots']
+folders_ = ['plots','Graph']
 for dir in folders_:
         if os.path.exists(dir):
             shutil.rmtree(dir)
@@ -44,11 +45,11 @@ for dir in folders_:
 # Lock the random seed for reproducibility
 np.random.seed = 7
 
-n_particles = 20
+n_particles = 50
 numbers = [str(x) for x in range(n_particles)]
 
-#input_files = glob.glob("/work/hajohajo/JetRegStudy/preprocessed_genJets_and_pfJets/*.root")
-input_files = glob.glob("/work/hajohajo/REMOVE/JetRegression/preprocessed_genJets_and_pfJets/*.root")
+path_to_files = "/work/hajohajo/REMOVE/JetRegression/preprocessed_genJets_and_pfJets_tmp/"
+input_files = glob.glob(path_to_files+"*.root")
 
 # A trick to easily read the input variable names and separate the neutral, charged and photons
 dummy = read_root(input_files[0], 'tree', chunksize=1).__iter__().next()
@@ -56,10 +57,12 @@ dummy = read_root(input_files[0], 'tree', chunksize=1).__iter__().next()
 Ccand_variables = list(dummy.filter(regex='jetPF_chg_'))
 Ncand_variables = list(dummy.filter(regex='jetPF_neu_'))
 Pcand_variables = list(dummy.filter(regex='jetPF_pho_'))
-Global_variables = list(set(list(dummy.filter(regex='jet')))-set(Ccand_variables+Ncand_variables+Pcand_variables))+list(dummy.filter(regex='QG_'))
+#Global_variables = list(set(list(dummy.filter(regex='jet')))-set(Ccand_variables+Ncand_variables+Pcand_variables))+list(dummy.filter(regex='QG_'))
+Global_variables = ['jetPt','jetEta','QG_mult','QG_axis2','QG_ptD']
 Gen_variables = list(dummy.filter(regex='genJet'))
 Flavor_variables = list(dummy.filter(regex='isPhys'))
 
+# Drops excessive pfCandidates, if there are more than n_particles present in the input files
 Ccand_variables = [cand for cand in Ccand_variables if (any(num == cand.split("_")[-1] for num in numbers))]
 Ncand_variables = [cand for cand in Ncand_variables if (any(num == cand.split("_")[-1] for num in numbers))]
 Pcand_variables = [cand for cand in Pcand_variables if (any(num == cand.split("_")[-1] for num in numbers))]
@@ -71,17 +74,19 @@ for list_ in [Ccand_variables, Ncand_variables, Pcand_variables]:
     list_ = ["".join(element) for element in dummy_list]
 
 Training_variables = Ccand_variables + Ncand_variables + Pcand_variables + Global_variables
+
+# Save variable names to guarantee same ordering when testing
+hkl.dump([n_particles, Ccand_variables, Ncand_variables, Pcand_variables, Global_variables, Gen_variables, Flavor_variables, Training_variables],'Variables.hkl')
+
 data = read_root(input_files, 'tree', columns=Training_variables+Gen_variables+Flavor_variables)
+data = data.sample(frac=1.0)
+data.reset_index(drop=True, inplace=True)
 
 # Target for the regression to predict the correction factor
 data['target'] = data.genJetPt/data.jetPt
 
 # Additional selections to limit phase space
 data = data[(np.abs(data.jetEta) < 1.3) & (data.genJetPt > 60.) & ((data.target > 0.9) & (data.target < 1.1))]
-
-# Test for nans
-print data.isnull().values.any()
-print data['target'][:5]
 
 # Split into set used for training and validation, and a separate test sets 0.9/0.1
 training, test = train_test_split(data, shuffle=True, test_size=0.1)
@@ -90,10 +95,9 @@ training, test = train_test_split(data, shuffle=True, test_size=0.1)
 to_root(test, 'test_data.root', key='tree')
 
 # Scale input variables for training and save scaler for future use in plotting
-scaler = StandardScaler().fit(training[Training_variables])
+scaler = MinMaxScaler().fit(training[Training_variables].values)
 dump(scaler, "scaler.pkl")
-#train_inp = pd.DataFrame(scaler.transform(training[Training_variables]), columns=Training_variables)
-train_inp = training[Training_variables]
+train_inp = pd.DataFrame(scaler.transform(training[Training_variables].values), columns=Training_variables)
 train_trg = training['target']
 
 # Separate globals, charged, neutral and photon candidates to their own inputs for the training
@@ -102,8 +106,6 @@ train_Ncands = train_inp[Ncand_variables]
 train_Pcands = train_inp[Pcand_variables]
 train_Globals = train_inp[Global_variables]
 
-print train_Globals.head()
-
 # Reshaping pfCand arrays to fit LSTMs
 train_Ccands = np.reshape(np.array(train_Ccands),(train_Ccands.shape[0], n_particles, train_Ccands.shape[1]/n_particles))
 train_Ncands = np.reshape(np.array(train_Ncands),(train_Ncands.shape[0], n_particles, train_Ncands.shape[1]/n_particles))
@@ -111,7 +113,6 @@ train_Pcands = np.reshape(np.array(train_Pcands),(train_Pcands.shape[0], n_parti
 
 # Create model
 model = create_model('ResNet', train_Ccands.shape, train_Ncands.shape, train_Pcands.shape, train_Globals.shape)
-#model = create_model('Test', train_Ccands.shape, train_Ncands.shape, train_Pcands.shape, train_Globals.shape)
 callbacks = Callbacks.get_callbacks()
 
 print model.summary()
@@ -119,9 +120,8 @@ print model.summary()
 
 #Perform training
 model.fit([train_Ccands, train_Ncands, train_Pcands, train_Globals],
-#model.fit(train_Globals,
           train_trg,
-          batch_size=1024,
+          batch_size=256,
           validation_split=0.1,
           shuffle=True,
           epochs=500,
