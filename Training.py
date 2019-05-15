@@ -107,6 +107,8 @@ data = data[(np.abs(data.jetEta) < 1.3) & (data.genJetPt > 60.) & ((data.target 
 
 # Split into set used for training and validation, and a separate test sets 0.9/0.1
 training, test = train_test_split(data, shuffle=True, test_size=0.1)
+test.reset_index(drop=True, inplace=True)
+training.reset_index(drop=True, inplace=True)
 
 # Save test data to a separate file for post training plotting
 to_root(test, 'test_data.root', key='tree')
@@ -116,6 +118,19 @@ scaler = MinMaxScaler().fit(training[Training_variables].values)
 dump(scaler, "scaler.pkl")
 train_inp = pd.DataFrame(scaler.transform(training[Training_variables].values), columns=Training_variables)
 train_trg = training['target']
+
+# Prepare test data for monitoring plots
+test_true = test[['isPhysUDS', 'isPhysG', 'genJetPt', 'jetPt']]
+test_inp = pd.DataFrame(scaler.transform(test[Training_variables].values), columns=Training_variables)
+test_Ccands = test_inp[Ccand_variables]
+test_Ncands = test_inp[Ncand_variables]
+test_Pcands = test_inp[Pcand_variables]
+test_Globals = test_inp[Global_variables]
+
+test_Ccands = np.reshape(np.array(test_Ccands),(test_Ccands.shape[0], n_particles, test_Ccands.shape[1]/n_particles))
+test_Ncands = np.reshape(np.array(test_Ncands),(test_Ncands.shape[0], n_particles, test_Ncands.shape[1]/n_particles))
+test_Pcands = np.reshape(np.array(test_Pcands),(test_Pcands.shape[0], n_particles, test_Pcands.shape[1]/n_particles))
+
 
 # Separate globals, charged, neutral and photon candidates to their own inputs for the training
 train_Ccands = train_inp[Ccand_variables]
@@ -130,11 +145,12 @@ train_Pcands = np.reshape(np.array(train_Pcands),(train_Pcands.shape[0], n_parti
 
 # Create model
 model = create_model('ResNet', train_Ccands.shape, train_Ncands.shape, train_Pcands.shape, train_Globals.shape)
-callbacks = Callbacks.get_callbacks()
-
+callbacks = Callbacks.getStandardCallbacks()
+callbacks += Callbacks.makePlots([test_Ccands, test_Ncands, test_Pcands, test_Globals], test_true, 'plots')
 print model.summary()
 
 
+print test_Globals.shape
 #Perform training
 model.fit([train_Ccands, train_Ncands, train_Pcands, train_Globals],
           train_trg,
