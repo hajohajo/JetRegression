@@ -35,6 +35,18 @@ from joblib import dump
 from Models import create_model
 import Callbacks
 
+import argparse
+
+useGenParticles = False
+
+parser = argparse.ArgumentParser()
+parser.add_argument("--useGenParticles", help="Use gen particles instead of pfCandidates in the training", action="store_true")
+args = parser.parse_args()
+if args.useGenParticles:
+	useGenParticles = True
+	print "Using gen particles"
+
+
 # (Re)create folder for plots
 folders_ = ['plots','Graph']
 for dir in folders_:
@@ -45,10 +57,10 @@ for dir in folders_:
 # Lock the random seed for reproducibility
 np.random.seed = 7
 
-n_particles = 50
+n_particles = 20
 numbers = [str(x) for x in range(n_particles)]
 
-path_to_files = "/work/hajohajo/REMOVE/JetRegression/preprocessed_genJets_and_pfJets_tmp/"
+path_to_files = "/work/hajohajo/JetRegression/preprocessed_genJets_and_pfJets_tmp/"
 input_files = glob.glob(path_to_files+"*.root")
 
 # A trick to easily read the input variable names and separate the neutral, charged and photons
@@ -57,6 +69,11 @@ dummy = read_root(input_files[0], 'tree', chunksize=1).__iter__().next()
 Ccand_variables = list(dummy.filter(regex='jetPF_chg_'))
 Ncand_variables = list(dummy.filter(regex='jetPF_neu_'))
 Pcand_variables = list(dummy.filter(regex='jetPF_pho_'))
+if useGenParticles:
+	Ccand_variables = list(dummy.filter(regex='genPF_chg_'))
+	Ncand_variables = list(dummy.filter(regex='genPF_neu_'))
+	Pcand_variables = list(dummy.filter(regex='genPF_pho_'))
+
 #Global_variables = list(set(list(dummy.filter(regex='jet')))-set(Ccand_variables+Ncand_variables+Pcand_variables))+list(dummy.filter(regex='QG_'))
 Global_variables = ['jetPt','jetEta','QG_mult','QG_axis2','QG_ptD']
 Gen_variables = list(dummy.filter(regex='genJet'))
