@@ -46,14 +46,10 @@ class plotResponses(Callback):
 		self.epoch += 1
 		
 		if self.epoch % 10 == 0:
-			predictions = self.model.predict([self.inputs[0], self.inputs[1], self.inputs[2], self.inputs[3]])[0]
-			DNNResponse = predictions/self.truths.genJetPt
+			predictions = self.model.predict([self.inputs[0], self.inputs[1], self.inputs[2], self.inputs[3]])[:,0]
+			DNNResponse = predictions*self.truths.jetPt/self.truths.genJetPt
 			L1L2L3Response = self.truths.jetPt/self.truths.genJetPt
 			
-
-			print DNNResponse
-			print L1L2L3Response
-
 			#Distribution of predicted and L1L2L3 responses for UD and G jets
 
 			#UD
@@ -65,7 +61,7 @@ class plotResponses(Callback):
 			stdL1L2L3 = np.std(L1L2L3Response[(self.truths.isPhysUDS==1)])
 
 			plt.hist(DNNResponse[self.truths.isPhysUDS==1], bins=binning, label='$\mu$: %0.3f, $\sigma$: %0.3f DNN'%(meanDNN, stdDNN), alpha=0.8)
-			plt.hist(L1L2L3Response[self.truths.isPhysUDS==1], bins=binning, label='$\mu$: %0.3f, $\sigma$: %0.3f DNN'%(meanL1L2L3, stdL1L2L3), alpha=0.8)
+			plt.hist(L1L2L3Response[self.truths.isPhysUDS==1], bins=binning, label='$\mu$: %0.3f, $\sigma$: %0.3f L1L2L3'%(meanL1L2L3, stdL1L2L3), alpha=0.8)
 			plt.legend()
 			plt.title('UD jet response distribution')
 			plt.xlabel('Response')
@@ -83,7 +79,7 @@ class plotResponses(Callback):
 			stdL1L2L3 = np.std(L1L2L3Response[self.truths.isPhysG==1])
 
 			plt.hist(DNNResponse[self.truths.isPhysG==1], bins=binning, label='$\mu$: %0.3f, $\sigma$: %0.3f DNN'%(meanDNN, stdDNN), alpha=0.8)
-			plt.hist(L1L2L3Response[self.truths.isPhysG==1], bins=binning, label='$\mu$: %0.3f, $\sigma$: %0.3f DNN'%(meanL1L2L3, stdL1L2L3), alpha=0.8)
+			plt.hist(L1L2L3Response[self.truths.isPhysG==1], bins=binning, label='$\mu$: %0.3f, $\sigma$: %0.3f L1L2L3'%(meanL1L2L3, stdL1L2L3), alpha=0.8)
  			plt.legend()
 			plt.title('UD jet response distribution')
 			plt.xlabel('Response')
