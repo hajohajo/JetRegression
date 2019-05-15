@@ -37,6 +37,9 @@ import Callbacks
 
 import argparse
 
+# Lock the random seed for reproducibility
+np.random.seed = 13
+
 useGenParticles = False
 
 parser = argparse.ArgumentParser()
@@ -54,8 +57,6 @@ for dir in folders_:
             shutil.rmtree(dir)
         os.makedirs(dir)
 
-# Lock the random seed for reproducibility
-np.random.seed = 7
 
 n_particles = 20
 numbers = [str(x) for x in range(n_particles)]
@@ -120,7 +121,7 @@ train_inp = pd.DataFrame(scaler.transform(training[Training_variables].values), 
 train_trg = training['target']
 
 # Prepare test data for monitoring plots
-test_true = test[['isPhysUDS', 'isPhysG', 'genJetPt', 'jetPt']]
+test_true = test[['isPhysUDS', 'isPhysG', 'genJetPt', 'jetPt', 'QG_ptD', 'QG_axis2','QG_mult']]
 test_inp = pd.DataFrame(scaler.transform(test[Training_variables].values), columns=Training_variables)
 test_Ccands = test_inp[Ccand_variables]
 test_Ncands = test_inp[Ncand_variables]
