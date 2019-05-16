@@ -46,6 +46,7 @@ class plotResponses(Callback):
         self.epoch += 1
 
         if self.epoch % 10 == 0:
+            plt.clf()
             predictions = self.model.predict([self.inputs[0], self.inputs[1], self.inputs[2], self.inputs[3]])[:,0]
             DNNResponse = predictions*self.truths.jetPt/self.truths.genJetPt
             L1L2L3Response = self.truths.jetPt/self.truths.genJetPt
@@ -62,7 +63,7 @@ class plotResponses(Callback):
             plt.hist(DNNResponse[self.truths.isPhysUDS==1], bins=binning, label='$\mu$: %0.3f, $\sigma$: %0.3f DNN'%(meanDNN, stdDNN), alpha=0.8)
             plt.hist(L1L2L3Response[self.truths.isPhysUDS==1], bins=binning, label='$\mu$: %0.3f, $\sigma$: %0.3f L1L2L3'%(meanL1L2L3, stdL1L2L3), alpha=0.8)
             plt.legend()
-            plt.title('UD jet response distribution')
+            plt.title('UD jet response distribution'+', epoch '+str(self.epoch))
             plt.xlabel('Response')
             plt.ylabel('Jets')
             plt.yscale('log', nonposy='clip')
@@ -80,7 +81,7 @@ class plotResponses(Callback):
             plt.hist(DNNResponse[self.truths.isPhysG==1], bins=binning, label='$\mu$: %0.3f, $\sigma$: %0.3f DNN'%(meanDNN, stdDNN), alpha=0.8)
             plt.hist(L1L2L3Response[self.truths.isPhysG==1], bins=binning, label='$\mu$: %0.3f, $\sigma$: %0.3f L1L2L3'%(meanL1L2L3, stdL1L2L3), alpha=0.8)
             plt.legend()
-            plt.title('UD jet response distribution')
+            plt.title('UD jet response distribution'+', epoch '+str(self.epoch))
             plt.xlabel('Response')
             plt.ylabel('Jets')
             plt.yscale('log', nonposy='clip')
@@ -92,7 +93,6 @@ class plotResponses(Callback):
             column=''
             toPlot=['genJetPt','QG_ptD','QG_mult', 'QG_axis2']
             for column in toPlot:
-                print column
                 binning = binningDict[column]
                 midPoint = 1.0*(binning[1]-binning[0])/2.0
                 xPoints = binning+midPoint
@@ -136,7 +136,7 @@ class plotResponses(Callback):
                 a0.fill_between(xPoints, meansUD_DNN-stdUD_DNN,meansUD_DNN+stdUD_DNN, alpha=0.4, label='$\pm 1\sigma$',color='blue')
                 a0.scatter(xPoints, meansUD_L1L2L3,label='L1L2L3', color='green', s=8)
                 a0.fill_between(xPoints, meansUD_L1L2L3-stdUD_L1L2L3,meansUD_L1L2L3+stdUD_L1L2L3, alpha=0.4, label='$\pm 1\sigma$',color='green')
-                a0.set_title('Mean UD responses and std w.r.t to '+labelDict[column])
+                a0.set_title('Mean UD responses and std w.r.t to '+labelDict[column]+', epoch '+str(self.epoch))
                 a0.set_ylim(yRangeDict[column][0],yRangeDict[column][1])
                 a0.set_xlim(binning[0],binning[-1])
                 a0.set_ylabel('Response')
@@ -156,13 +156,13 @@ class plotResponses(Callback):
                 binning = binningDict[column]
                 midPoint = 1.0*(binning[1]-binning[0])/2.0
                 xPoints = binning+midPoint
-                #UD##
+                #G##
                 fig,(a0,a1) = plt.subplots(2,1,sharex=True,gridspec_kw={'height_ratios':[3,1]})
-                a0.scatter(xPoints, meansUD_DNN,label='DNN', color='blue', s=8)
-                a0.fill_between(xPoints, meansUD_DNN-stdUD_DNN,meansUD_DNN+stdUD_DNN, alpha=0.4, label='$\pm 1\sigma$',color='blue')
-                a0.scatter(xPoints, meansUD_L1L2L3,label='L1L2L3', color='green', s=8)
-                a0.fill_between(xPoints, meansUD_L1L2L3-stdUD_L1L2L3,meansUD_L1L2L3+stdUD_L1L2L3, alpha=0.4, label='$\pm 1\sigma$',color='green')
-                a0.set_title('Mean UD responses and std w.r.t to '+labelDict[column])
+                a0.scatter(xPoints, meansG_DNN,label='DNN', color='blue', s=8)
+                a0.fill_between(xPoints, meansG_DNN-stdG_DNN,meansG_DNN+stdG_DNN, alpha=0.4, label='$\pm 1\sigma$',color='blue')
+                a0.scatter(xPoints, meansG_L1L2L3,label='L1L2L3', color='green', s=8)
+                a0.fill_between(xPoints, meansG_L1L2L3-stdG_L1L2L3,meansG_L1L2L3+stdG_L1L2L3, alpha=0.4, label='$\pm 1\sigma$',color='green')
+                a0.set_title('Mean G responses and std w.r.t to '+labelDict[column]+', epoch '+str(self.epoch))
                 a0.set_ylim(yRangeDict[column][0],yRangeDict[column][1])
                 a0.set_xlim(binning[0],binning[-1])
                 a0.set_ylabel('Response')
@@ -171,11 +171,11 @@ class plotResponses(Callback):
                 a0.set_xticks(binning[::4])
 
                 #The distribution of jets in the lower plot
-                n,bins,s = a1.hist(self.truths[UDJetIndices][column], bins=binning,
-                                    weights=np.ones_like(self.truths[UDJetIndices][column]/float(np.sum(UDJetIndices))))
+                n,bins,s = a1.hist(self.truths[GJetIndices][column], bins=binning,
+                                    weights=np.ones_like(self.truths[GJetIndices][column]/float(np.sum(GJetIndices))))
                 a1.set_ylabel('Jet fraction')
                 a1.set_xlabel(labelDict[column])
-                plt.savefig(self.outputFolder+'/meanUDResponseVs'+column+'.pdf')
+                plt.savefig(self.outputFolder+'/meanGResponseVs'+column+'.pdf')
                 plt.clf()
 
 
