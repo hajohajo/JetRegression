@@ -1,6 +1,9 @@
 import matplotlib.pyplot as plt
 import numpy as np
 from keras.callbacks import Callback, ReduceLROnPlateau, TensorBoard, ModelCheckpoint
+from math import sqrt, pow
+
+
 
 labelDict = {'QG_ptD':'Jet energy sharing, p$_T$D','QG_mult':'Multiplicity','QG_axis2':'Jet minor axis','jet_pt':'Jet raw pT','jetPt':'Jet corrected pT','genJetPt':'Gen pT'}
 binningDict = {'QG_ptD':np.arange(0.1,1.05,0.05),'QG_mult':np.arange(0.0,81.0,1.0),'QG_axis2':np.arange(0.0,0.15,0.005),'jet_pt':np.arange(0.0,1020.0,20.0),'jet_corr_pt':np.arange(0.0,1020.0,20.0),'genJetPt':np.arange(0.0,1020.0,20.0)}
@@ -153,9 +156,6 @@ class plotResponses(Callback):
                 plt.clf()
 
 
-                binning = binningDict[column]
-                midPoint = 1.0*(binning[1]-binning[0])/2.0
-                xPoints = binning+midPoint
                 #G##
                 fig,(a0,a1) = plt.subplots(2,1,sharex=True,gridspec_kw={'height_ratios':[3,1]})
                 a0.scatter(xPoints, meansG_DNN,label='DNN', color='blue', s=8)
@@ -177,8 +177,74 @@ class plotResponses(Callback):
                 a1.set_xlabel(labelDict[column])
                 plt.savefig(self.outputFolder+'/meanGResponseVs'+column+'.pdf')
                 plt.clf()
+            #End of mean and std w.r.t to variables plots
+            
+            #R_UD - R_G residual plot
+            binning = binningDict['genJetPt']
+            midPoint = 1.0*(binning[1]-binning[0])/2.0
+            xPoints = binning+midPoint
+            UDJetIndices = (self.truths.isPhysUDS==1)
+            GJetIndices = (self.truths.isPhysG==1)
+            digitizedUD = np.digitize(self.truths[UDJetIndices]['genJetPt'],binning)
+            digitizedG = np.digitize(self.truths[GJetIndices]['genJetPt'],binning)
 
+            meansUD_DNN = np.zeros(len(binning))
+            meansG_DNN = np.zeros(len(binning))
+            meansUD_L1L2L3 = np.zeros(len(binning))
+            meansG_L1L2L3 = np.zeros(len(binning))
+            stdUD_DNN = np.zeros(len(binning))
+            stdG_DNN = np.zeros(len(binning))
+            stdUD_L1L2L3 = np.zeros(len(binning))
+            stdG_L1L2L3 = np.zeros(len(binning))
 
+            for i in range(1, len(binning)):
+                meansUD_DNN[i-1] = np.mean(DNNResponse[UDJetIndices][digitizedUD==i])
+                meansG_DNN[i-1] = np.mean(DNNResponse[GJetIndices][digitizedG==i])
+                meansUD_L1L2L3[i-1] = np.mean(L1L2L3Response[UDJetIndices][digitizedUD==i])
+                meansG_L1L2L3[i-1] = np.mean(L1L2L3Response[GJetIndices][digitizedG==i])
+                stdUD_DNN[i-1] = np.std(DNNResponse[UDJetIndices][digitizedUD==i])
+                stdG_DNN[i-1] = np.std(DNNResponse[GJetIndices][digitizedG==i])
+                stdUD_L1L2L3[i-1] = np.std(L1L2L3Response[UDJetIndices][digitizedUD==i])
+                stdG_L1L2L3[i-1] = np.std(L1L2L3Response[GJetIndices][digitizedG==i])
+
+            #Clean out nans that happen for example if the bins are empty
+            meansUD_DNN = np.nan_to_num(meansUD_DNN)
+            meansG_DNN = np.nan_to_num(meansG_DNN)
+            meansUD_L1L2L3 = np.nan_to_num(meansUD_L1L2L3)
+            meansG_L1L2L3 = np.nan_to_num(meansG_L1L2L3)
+            stdUD_DNN = np.nan_to_num(stdUD_DNN)
+            stdG_DNN = np.nan_to_num(stdG_DNN)
+            stdUD_L1L2L3 = np.nan_to_num(stdUD_L1L2L3)
+            stdG_L1L2L3 = np.nan_to_num(stdG_L1L2L3)
+
+            residualMeanDNN = meansUD_DNN-meansG_DNN
+            residualMeanL1L2L3 = meansUD_L1L2L3-meansG_L1L2L3
+            stdResidualDNN = np.sqrt(np.power(stdUD_DNN,2)+np.power(stdG_DNN,2))
+            stdResidualL1L2L3 = np.sqrt(np.power(stdG_DNN,2)+np.power(stdG_L1L2L3,2))
+            
+            fig,(a0,a1) = plt.subplots(2,1,sharex=True,gridspec_kw={'height_ratios':[3,1]})
+            a0.scatter(xPoints, residualMeanDNN,label='DNN', color='blue', s=8)
+            a0.fill_between(xPoints, residualMeanDNN-stdResidualDNN,residualMeanDNN+stdResidualDNN, alpha=0.4, label='$\pm 1\sigma$',color='blue')
+            a0.scatter(xPoints, residualMeanL1L2L3,label='L1L2L3', color='green', s=8)
+            a0.fill_between(xPoints, residualMeanL1L2L3-stdResidualL1L2L3,residualMeanL1L2L3+stdResidualL1L2L3, alpha=0.4, label='$\pm 1\sigma$',color='green')
+            a0.set_title('Response residuals, epoch '+str(self.epoch))
+            a0.set_ylim(-0.2,0.2)
+            a0.set_xlim(binning[0],binning[-1])
+            a0.set_ylabel('R$_{UD}$-R$_{G}$')
+            a0.legend()
+            a0.plot([0, (binning[-1]+(binning[1]-binning[0]))], [0,0], 'k--')
+            a0.set_xticks(binning[::4])
+
+            #The distribution of jets in the lower plot
+            n,bins,s = a1.hist(self.truths['genJetPt'], bins=binning,
+                                weights=np.ones_like(self.truths['genJetPt']/float(self.truths.shape[0])))
+            a1.set_ylabel('Jet fraction')
+            a1.set_xlabel(labelDict['genJetPt'])
+            plt.savefig(self.outputFolder+'/meanResponseResidualsVsGenJetPt.pdf')
+            plt.clf()
+
+            #Explicitly close all opened figures to stop them from consuming memory
+            plt.close('all')
 
 def getStandardCallbacks():
     reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.5,
