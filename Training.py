@@ -38,8 +38,12 @@ import Callbacks
 import argparse
 
 # Lock the random seed for reproducibility
-np.random.seed = 13
+from numpy.random import seed
+seed(13)
+from tensorflow import set_random_seed
+set_random_seed(2)
 
+#See if genParticle usage is requested
 useGenParticles = False
 
 parser = argparse.ArgumentParser()
