@@ -89,8 +89,10 @@ class plotResponses(Callback):
 			####End of response distributions
 			
 			#Mean and std.dev of responses w.r.t. to variables
+			column=''
 			toPlot=['genJetPt','QG_ptD','QG_mult', 'QG_axis2']
 			for column in toPlot:
+				print column
 				binning = binningDict[column]
 				midPoint = 1.0*(binning[1]-binning[0])/2.0
 				xPoints = binning+midPoint
@@ -117,7 +119,7 @@ class plotResponses(Callback):
 					stdG_DNN[i-1] = np.std(DNNResponse[GJetIndices][digitizedG==i])
 					stdUD_L1L2L3[i-1] = np.std(L1L2L3Response[UDJetIndices][digitizedUD==i])
 					stdG_L1L2L3[i-1] = np.std(L1L2L3Response[GJetIndices][digitizedG==i])
-					
+
 				#Clean out nans that happen for example if the bins are empty
 				meansUD_DNN = np.nan_to_num(meansUD_DNN)
 				meansG_DNN = np.nan_to_num(meansG_DNN)
@@ -127,7 +129,7 @@ class plotResponses(Callback):
 				stdG_DNN = np.nan_to_num(stdG_DNN)
 				stdUD_L1L2L3 = np.nan_to_num(stdUD_L1L2L3)
 				stdG_L1L2L3 = np.nan_to_num(stdG_L1L2L3)
-				
+
 				#UD##
 				fig,(a0,a1) = plt.subplots(2,1,sharex=True,gridspec_kw={'height_ratios':[3,1]})
 				a0.scatter(xPoints, meansUD_DNN,label='DNN', color='blue', s=8)
@@ -141,7 +143,7 @@ class plotResponses(Callback):
 				a0.legend()
 				a0.plot([0, (binning[-1]+(binning[1]-binning[0]))], [1,1], 'k--')
 				a0.set_xticks(binning[::4])
-				
+
 				#The distribution of jets in the lower plot
 				n,bins,s = a1.hist(self.truths[UDJetIndices][column], bins=binning,
 									weights=np.ones_like(self.truths[UDJetIndices][column]/float(np.sum(UDJetIndices))))
@@ -149,28 +151,34 @@ class plotResponses(Callback):
 				a1.set_xlabel(labelDict[column])
 				plt.savefig(self.outputFolder+'/meanUDResponseVs'+column+'.pdf')
 				plt.clf()
-				
-                #G##
-				fig,(a0,a1) = plt.subplots(2,1,sharex=True,gridspec_kw={'height_ratios':[3,1]})
-				a0.scatter(xPoints, meansG_DNN,label='DNN', color='blue', s=8)
-				a0.fill_between(xPoints, meansG_DNN-stdG_DNN,meansG_DNN+stdG_DNN, alpha=0.4, label='$\pm 1\sigma$',color='blue')
-				a0.scatter(xPoints, meansG_L1L2L3,label='L1L2L3', color='green', s=8)
-				a0.fill_between(xPoints, meansG_L1L2L3-stdG_L1L2L3,meansG_L1L2L3+stdG_L1L2L3, alpha=0.4, label='$\pm 1\sigma$',color='green')
-				a0.set_title('Mean G responses and std w.r.t to '+labelDict[column])
+
+
+                binning = binningDict[column]
+                midPoint = 1.0*(binning[1]-binning[0])/2.0
+                xPoints = binning+midPoint
+                #UD##
+                fig,(a0,a1) = plt.subplots(2,1,sharex=True,gridspec_kw={'height_ratios':[3,1]})
+                a0.scatter(xPoints, meansUD_DNN,label='DNN', color='blue', s=8)
+                a0.fill_between(xPoints, meansUD_DNN-stdUD_DNN,meansUD_DNN+stdUD_DNN, alpha=0.4, label='$\pm 1\sigma$',color='blue')
+                a0.scatter(xPoints, meansUD_L1L2L3,label='L1L2L3', color='green', s=8)
+                a0.fill_between(xPoints, meansUD_L1L2L3-stdUD_L1L2L3,meansUD_L1L2L3+stdUD_L1L2L3, alpha=0.4, label='$\pm 1\sigma$',color='green')
+                a0.set_title('Mean UD responses and std w.r.t to '+labelDict[column])
                 a0.set_ylim(yRangeDict[column][0],yRangeDict[column][1])
                 a0.set_xlim(binning[0],binning[-1])
                 a0.set_ylabel('Response')
                 a0.legend()
                 a0.plot([0, (binning[-1]+(binning[1]-binning[0]))], [1,1], 'k--')
                 a0.set_xticks(binning[::4])
-                
-				#The distribution of jets in the lower plot
+
+                #The distribution of jets in the lower plot
                 n,bins,s = a1.hist(self.truths[UDJetIndices][column], bins=binning,
-			    					weights=np.ones_like(self.truths[UDJetIndices][column]/float(np.sum(UDJetIndices))))
+                                    weights=np.ones_like(self.truths[UDJetIndices][column]/float(np.sum(UDJetIndices))))
                 a1.set_ylabel('Jet fraction')
                 a1.set_xlabel(labelDict[column])
-                plt.savefig(self.outputFolder+'/meanGResponseVs'+column+'.pdf')
+                plt.savefig(self.outputFolder+'/meanUDResponseVs'+column+'.pdf')
                 plt.clf()
+
+
 
 def getStandardCallbacks():
     reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.5,
