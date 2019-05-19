@@ -11,13 +11,14 @@ yRangeDict = {'QG_ptD':[0.8,1.2],'QG_mult':[0.8,1.2],'QG_axis2':[0.8,1.2],'jet_p
 
 #Callback that produces training loss plots at the end of each epoch
 class plotLearning(Callback):
-    def on_train_begin(self, logs={}):
+    def __init__(self, folder, logs={}):
         self.epoch = 0
         self.x = []
         self.losses = []
         self.val_losses = []
         self.logs = []
         self.fig = plt.figure()
+        self.outputFolder = folder
 
     def on_epoch_end(self, epoch, logs = {}):
         self.logs.append(logs)
@@ -34,8 +35,8 @@ class plotLearning(Callback):
         plt.ylabel('Epoch loss')
         plt.xlabel('Epoch')
 
-    plt.savefig('plots/Loss_plot.pdf')
-    plt.clf()
+        plt.savefig(self.outputFolder+'/Loss_plot.pdf')
+        plt.clf()
 
 #Callback that produces response plots from given test set at the end of each epoch
 class plotResponses(Callback):
@@ -48,11 +49,10 @@ class plotResponses(Callback):
     def on_epoch_end(self, epoch, logs={}):
         self.epoch += 1
 
-#        if self.epoch % 10 == 0:
-        if self.epoch % 1 == 0:
+        if self.epoch % 10 == 0:
+#        if self.epoch % 1 == 0:
             plt.clf()
             predictions = self.model.predict([self.inputs[0], self.inputs[1], self.inputs[2], self.inputs[3]])[:,0]
-            print "bla", predictions.shape[0],self.truths.jetPt.shape[0],self.truths.genJetPt.shape[0]
             DNNResponse = predictions*self.truths.jetPt/self.truths.genJetPt
             L1L2L3Response = self.truths.jetPt/self.truths.genJetPt
 
@@ -258,7 +258,7 @@ def getStandardCallbacks():
     checkpoint = ModelCheckpoint('checkpoint_model.h5', monitor='val_loss',
                                  verbose=0, save_best_only=False,
                                  mode='auto')
-    loss_plot = plotLearning()
+    loss_plot = plotLearning('plots')
 
     monitoring = TensorBoard(log_dir='./Graph', histogram_freq=1, write_graph=True, write_images=True, write_grads=True) 
 
