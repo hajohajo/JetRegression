@@ -55,7 +55,7 @@ if args.useGenParticles:
 
 
 # (Re)create folder for plots
-folders_ = ['plots','Graph']
+folders_ = ['plots','plots_Cut', 'plots_CutInv','Graph']
 for dir in folders_:
         if os.path.exists(dir):
             shutil.rmtree(dir)
@@ -65,11 +65,11 @@ for dir in folders_:
 n_particles = 20
 numbers = [str(x) for x in range(n_particles)]
 
-path_to_files = "/work/hajohajo/JetRegression/preprocessed_genJets_and_pfJets_tmp/"
+path_to_files = "/work/kirschen/2019_05_JetRegression/JetRegression/preprocessed_genJets_and_pfJets_tmp/"
 input_files = glob.glob(path_to_files+"*.root")
 
 # A trick to easily read the input variable names and separate the neutral, charged and photons
-dummy = read_root(input_files[0], 'tree', chunksize=1).__iter__().next()
+dummy = read_root(input_files, 'tree', chunksize=1).__iter__().next()
 
 Ccand_variables = list(dummy.filter(regex='jetPF_chg_'))
 Ncand_variables = list(dummy.filter(regex='jetPF_neu_'))
@@ -108,12 +108,15 @@ data.reset_index(drop=True, inplace=True)
 data['target'] = data.genJetPt/data.jetPt
 
 # Additional selections to limit phase space
-data = data[(np.abs(data.jetEta) < 1.3) & (data.genJetPt > 60.) & ((data.target > 0.9) & (data.target < 1.1))]
+#data = data[(np.abs(data.jetEta) < 1.3) & (data.genJetPt > 60.) & ((data.target > 0.9) & (data.target < 1.1))]
+data = data[(np.abs(data.jetEta) < 1.3) & (data.genJetPt > 60.) ]
 
 # Split into set used for training and validation, and a separate test sets 0.9/0.1
 training, test = train_test_split(data, shuffle=True, test_size=0.1)
 test.reset_index(drop=True, inplace=True)
 training.reset_index(drop=True, inplace=True)
+
+training = training[((training.target>0.9) & (training.target<1.1))]
 
 # Save test data to a separate file for post training plotting
 to_root(test, 'test_data.root', key='tree')
@@ -136,6 +139,20 @@ test_Ccands = np.reshape(np.array(test_Ccands),(test_Ccands.shape[0], n_particle
 test_Ncands = np.reshape(np.array(test_Ncands),(test_Ncands.shape[0], n_particles, test_Ncands.shape[1]/n_particles))
 test_Pcands = np.reshape(np.array(test_Pcands),(test_Pcands.shape[0], n_particles, test_Pcands.shape[1]/n_particles))
 
+indices=( ((test.target<1.1) & (test.target>0.9)) )
+testCut_true   = test_true[indices]
+testCut_Ccands = test_Ccands[indices]
+testCut_Ncands = test_Ncands[indices]
+testCut_Pcands = test_Pcands[indices]
+testCut_Globals = test_Globals[indices]
+print testCut_true.shape[0],testCut_Ccands.shape[0]
+assert(testCut_true.shape[0]==testCut_Ccands.shape[0])
+
+testCutInv_true   = test_true[~indices]
+testCutInv_Ccands  = test_Ccands [np.invert(indices)]
+testCutInv_Ncands  = test_Ncands [np.invert(indices)]
+testCutInv_Pcands  = test_Pcands [np.invert(indices)]
+testCutInv_Globals = test_Globals[np.invert(indices)]
 
 # Separate globals, charged, neutral and photon candidates to their own inputs for the training
 train_Ccands = train_inp[Ccand_variables]
@@ -151,7 +168,9 @@ train_Pcands = np.reshape(np.array(train_Pcands),(train_Pcands.shape[0], n_parti
 # Create model
 model = create_model('ResNet', train_Ccands.shape, train_Ncands.shape, train_Pcands.shape, train_Globals.shape)
 callbacks = Callbacks.getStandardCallbacks()
-callbacks += Callbacks.makePlots([test_Ccands, test_Ncands, test_Pcands, test_Globals], test_true, 'plots')
+callbacks += Callbacks.makePlots([testCut_Ccands, testCut_Ncands, testCut_Pcands, testCut_Globals], testCut_true, 'plots_Cut')
+callbacks += Callbacks.makePlots([testCutInv_Ccands, testCutInv_Ncands, testCutInv_Pcands, testCutInv_Globals], testCutInv_true, 'plots_CutInv')
+#callbacks += Callbacks.makePlots([test_Ccands, test_Ncands, test_Pcands, test_Globals], test_true, 'plots')
 print model.summary()
 
 

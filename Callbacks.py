@@ -48,9 +48,11 @@ class plotResponses(Callback):
     def on_epoch_end(self, epoch, logs={}):
         self.epoch += 1
 
-        if self.epoch % 10 == 0:
+#        if self.epoch % 10 == 0:
+        if self.epoch % 1 == 0:
             plt.clf()
             predictions = self.model.predict([self.inputs[0], self.inputs[1], self.inputs[2], self.inputs[3]])[:,0]
+            print "bla", predictions.shape[0],self.truths.jetPt.shape[0],self.truths.genJetPt.shape[0]
             DNNResponse = predictions*self.truths.jetPt/self.truths.genJetPt
             L1L2L3Response = self.truths.jetPt/self.truths.genJetPt
 
@@ -70,7 +72,8 @@ class plotResponses(Callback):
             plt.xlabel('Response')
             plt.ylabel('Jets')
             plt.yscale('log', nonposy='clip')
-            plt.savefig(self.outputFolder+'/responseDistributionUD.pdf')
+#            plt.savefig(self.outputFolder+'/responseDistributionUD.pdf')
+            plt.savefig(self.outputFolder+'/responseDistributionUD_'+str(self.epoch)+'.pdf')
             plt.clf()
 
             #G
@@ -88,7 +91,7 @@ class plotResponses(Callback):
             plt.xlabel('Response')
             plt.ylabel('Jets')
             plt.yscale('log', nonposy='clip')
-            plt.savefig(self.outputFolder+'/responseDistributionG.pdf')
+            plt.savefig(self.outputFolder+'/responseDistributionG_'+str(self.epoch)+'.pdf')
             plt.clf()
             ####End of response distributions
 
@@ -152,7 +155,8 @@ class plotResponses(Callback):
                                     weights=np.ones_like(self.truths[UDJetIndices][column]/float(np.sum(UDJetIndices))))
                 a1.set_ylabel('Jet fraction')
                 a1.set_xlabel(labelDict[column])
-                plt.savefig(self.outputFolder+'/meanUDResponseVs'+column+'.pdf')
+                #                plt.savefig(self.outputFolder+'/meanUDResponseVs'+column+'.pdf')
+                plt.savefig(self.outputFolder+'/meanUDResponseVs'+column+'_'+str(self.epoch)+'.pdf')
                 plt.clf()
 
 
@@ -175,7 +179,8 @@ class plotResponses(Callback):
                                     weights=np.ones_like(self.truths[GJetIndices][column]/float(np.sum(GJetIndices))))
                 a1.set_ylabel('Jet fraction')
                 a1.set_xlabel(labelDict[column])
-                plt.savefig(self.outputFolder+'/meanGResponseVs'+column+'.pdf')
+                #                plt.savefig(self.outputFolder+'/meanGResponseVs'+column+'.pdf')
+                plt.savefig(self.outputFolder+'/meanGResponseVs'+column+'_'+str(self.epoch)+'.pdf')
                 plt.clf()
             #End of mean and std w.r.t to variables plots
             
@@ -240,7 +245,8 @@ class plotResponses(Callback):
                                 weights=np.ones_like(self.truths['genJetPt']/float(self.truths.shape[0])))
             a1.set_ylabel('Jet fraction')
             a1.set_xlabel(labelDict['genJetPt'])
-            plt.savefig(self.outputFolder+'/meanResponseResidualsVsGenJetPt.pdf')
+            #            plt.savefig(self.outputFolder+'/meanResponseResidualsVsGenJetPt.pdf')
+            plt.savefig(self.outputFolder+'/meanResponseResidualsVsGenJetPt_'+str(self.epoch)+'.pdf')
             plt.clf()
 
             #Explicitly close all opened figures to stop them from consuming memory
